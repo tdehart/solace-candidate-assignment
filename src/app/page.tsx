@@ -17,7 +17,7 @@ export default function Home() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch("/api/advocates");
+        const response = await fetch("/api/advocates?limit=5");
 
         if (!response.ok) {
           throw new Error(`Failed to fetch advocates: ${response.statusText}`);
