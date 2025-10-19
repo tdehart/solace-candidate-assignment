@@ -14,6 +14,7 @@ describe("AdvocateCard", () => {
     specialties: ["Mental Health", "Trauma"],
     yearsOfExperience: 10,
     phoneNumber: 5551234567,
+    createdAt: "2023-01-01T00:00:00.000Z",
   };
 
   it("should render advocate name and degree", () => {
