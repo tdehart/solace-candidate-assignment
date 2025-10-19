@@ -83,4 +83,27 @@ describe('GET /api/advocates', () => {
 
     expect(response.status).toBe(200);
   });
+
+  it('should accept city filter parameter', async () => {
+    const request = new Request('http://localhost:3000/api/advocates?city=San');
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('should accept search query parameter', async () => {
+    const request = new Request('http://localhost:3000/api/advocates?q=weight');
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('should accept multiple filter parameters together', async () => {
+    const request = new Request(
+      'http://localhost:3000/api/advocates?q=mental&city=New&degree=PhD&minExp=10&sort=name_asc'
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+  });
 });
