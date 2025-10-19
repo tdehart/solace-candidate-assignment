@@ -106,7 +106,7 @@ function buildOrderBy(sortOption: SortOption): SQL[] {
 function buildFilters(params: QueryParams): SQL[] {
   const conditions: SQL[] = [];
 
-  // Search query (ILIKE on first name, last name, city)
+  // Search query (ILIKE on first name, last name, city, and specialties)
   // Tokenize on whitespace and AND the terms for better matching
   if (params.q) {
     const terms = params.q.trim().split(/\s+/).filter(Boolean);
@@ -116,16 +116,18 @@ function buildFilters(params: QueryParams): SQL[] {
         return or(
           ilike(advocates.firstName, searchPattern),
           ilike(advocates.lastName, searchPattern),
-          ilike(advocates.city, searchPattern)
+          ilike(advocates.city, searchPattern),
+          // Search within specialties jsonb array by casting to text
+          sql`${advocates.specialties}::text ILIKE ${searchPattern}`
         )!;
       });
       conditions.push(and(...termConditions)!);
     }
   }
 
-  // City filter
+  // City filter (case-insensitive pattern match)
   if (params.city) {
-    conditions.push(sql`${advocates.city} = ${params.city}`);
+    conditions.push(ilike(advocates.city, `%${params.city}%`));
   }
 
   // Degree filter
