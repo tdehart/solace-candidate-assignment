@@ -5,7 +5,10 @@ import { GET } from './route';
 vi.mock('../../../db', () => ({
   default: {
     select: vi.fn().mockReturnThis(),
-    from: vi.fn().mockResolvedValue([
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue([
       {
         id: 1,
         firstName: 'John',
@@ -25,6 +28,12 @@ vi.mock('../../../db/schema', () => ({
   advocates: {},
 }));
 
+vi.mock('../../../lib/cursor', () => ({
+  encodeCursor: vi.fn(() => 'mock-cursor-token'),
+  decodeCursor: vi.fn(() => null),
+  hashFilters: vi.fn(() => 'mock-hash'),
+}));
+
 describe('GET /api/advocates', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,8 +46,11 @@ describe('GET /api/advocates', () => {
 
     expect(response.status).toBe(200);
     expect(data).toHaveProperty('data');
+    expect(data).toHaveProperty('pageInfo');
     expect(Array.isArray(data.data)).toBe(true);
     expect(data.data.length).toBeGreaterThan(0);
+    expect(data.pageInfo).toHaveProperty('nextCursor');
+    expect(data.pageInfo).toHaveProperty('hasNext');
   });
 
   it('should return 400 for invalid query parameters', async () => {
