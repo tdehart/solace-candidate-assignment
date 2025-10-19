@@ -40,7 +40,17 @@ This will start PostgreSQL with the following defaults:
 npx drizzle-kit push
 ```
 
-### 5. Seed the database
+### 5. Add database indexes
+
+Apply performance indexes for filtering and sorting:
+
+```bash
+docker compose exec -T db psql -U postgres -d solaceassignment -f - < src/db/migrations/add_indexes.sql
+```
+
+This creates indexes on city, years_of_experience, lower(last_name), and specialties for efficient pagination.
+
+### 6. Seed the database
 
 Start the development server first:
 
@@ -54,6 +64,6 @@ Then seed the database:
 curl -X POST http://localhost:3000/api/seed
 ```
 
-### 6. Open the application
+### 7. Open the application
 
 Navigate to [http://localhost:3000](http://localhost:3000) to view the application.
