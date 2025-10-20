@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, or, ilike, gte, sql, SQL, desc, asc } from "drizzle-orm";
+import { and, or, ilike, gte, sql, SQL } from "drizzle-orm";
 import db from "../../../db";
 import { advocates } from "../../../db/schema";
 import {
