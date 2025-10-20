@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import type { Advocate } from "@/types/advocate";
-import { AdvocateCard } from "@/components/AdvocateCard";
-import { AdvocateCardSkeleton } from "@/components/AdvocateCardSkeleton";
 import { useDebounce } from "@/hooks/useDebounce";
-import { Search, SlidersHorizontal, ChevronDown, ChevronUp, MapPin, GraduationCap, Award } from "lucide-react";
-
-interface PageInfo {
-  nextCursor: string | null;
-  hasNext: boolean;
-}
+import { useAdvocates } from "@/hooks/useAdvocates";
+import { SearchBar } from "@/components/SearchBar";
+import { AdvancedFilters } from "@/components/AdvancedFilters";
+import { AdvocateGrid } from "@/components/AdvocateGrid";
+import { ActiveFiltersBar } from "@/components/ActiveFiltersBar";
 
 export default function Home() {
   const router = useRouter();
@@ -24,93 +21,72 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [city, setCity] = useState(searchParams.get("city") || "");
   const [degree, setDegree] = useState(searchParams.get("degree") || "");
-  const [minYears, setMinYears] = useState(searchParams.get("minExp") || "");
+  const [minExp, setMinExp] = useState(searchParams.get("minExp") || "");
   const [sort, setSort] = useState(searchParams.get("sort") || "years_desc");
 
   // Debounce search query
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // Data state
-  const [advocates, setAdvocates] = useState<Advocate[]>([]);
-  const [pageInfo, setPageInfo] = useState<PageInfo>({ nextCursor: null, hasNext: false });
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Pagination state - track accumulated advocates for "Load More"
+  const [allAdvocates, setAllAdvocates] = useState<Advocate[]>([]);
+  const [currentCursor, setCurrentCursor] = useState<string | undefined>(undefined);
 
-  // Build query string from filters
-  const buildQueryString = useCallback((cursor?: string | null) => {
-    const params = new URLSearchParams();
+  // Fetch initial page with SWR (caching, deduplication)
+  const { data, pageInfo, isLoading, isValidating, error } = useAdvocates({
+    q: debouncedSearch,
+    city,
+    degree,
+    minExp,
+    sort,
+    cursor: currentCursor,
+    limit: 20,
+  });
 
-    if (debouncedSearch) params.set("q", debouncedSearch);
-    if (city) params.set("city", city);
-    if (degree) params.set("degree", degree);
-    if (minYears) params.set("minExp", minYears);
-    if (sort) params.set("sort", sort);
-    if (cursor) params.set("cursor", cursor);
-    params.set("limit", "20");
-
-    return params.toString();
-  }, [debouncedSearch, city, degree, minYears, sort]);
-
-  // Update URL when filters change
+  // Update URL when filters change and reset pagination
   useEffect(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (city) params.set("city", city);
     if (degree) params.set("degree", degree);
-    if (minYears) params.set("minExp", minYears);
+    if (minExp) params.set("minExp", minExp);
     if (sort) params.set("sort", sort);
 
     const queryString = params.toString();
     router.push(queryString ? `/?${queryString}` : "/", { scroll: false });
-  }, [debouncedSearch, city, degree, minYears, sort, router]);
 
-  // Fetch advocates
-  const fetchAdvocates = useCallback(async (cursor?: string | null, append = false) => {
-    try {
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-        setError(null);
-      }
+    // Reset pagination when filters change
+    setCurrentCursor(undefined);
+  }, [debouncedSearch, city, degree, minExp, sort, router]);
 
-      const queryString = buildQueryString(cursor);
-      const response = await fetch(`/api/advocates?${queryString}`);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to fetch advocates: ${response.statusText}`);
-      }
-
-      const jsonResponse = await response.json();
-
-      if (append) {
-        setAdvocates((prev) => [...prev, ...jsonResponse.data]);
-      } else {
-        setAdvocates(jsonResponse.data);
-      }
-
-      setPageInfo(jsonResponse.pageInfo);
-    } catch (err) {
-      console.error("Error fetching advocates:", err);
-      setError(err instanceof Error ? err.message : "Failed to load advocates");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [buildQueryString]);
-
-  // Fetch on filter change
+  // Update advocates when data changes
   useEffect(() => {
-    fetchAdvocates();
-  }, [fetchAdvocates]);
+    if (isLoading && !currentCursor) return;
 
-  // Handle Load More
-  const handleLoadMore = () => {
-    if (pageInfo.nextCursor && !loadingMore) {
-      fetchAdvocates(pageInfo.nextCursor, true);
+    if (currentCursor && data.length > 0) {
+      // We're loading more - append new data only if we got results
+      setAllAdvocates((prev) => {
+        // Prevent duplicates by checking if first item already exists
+        const firstNewId = data[0]?.id;
+        if (firstNewId && prev.some(a => a.id === firstNewId)) {
+          return prev;
+        }
+        return [...prev, ...data];
+      });
+    } else if (!currentCursor) {
+      // Initial load or filter change - replace data
+      setAllAdvocates(data);
     }
+  }, [data, isLoading, currentCursor]);
+
+  const isLoadingMore = Boolean(currentCursor) && isValidating;
+
+  // Handle Load More - smoothly append without full page refresh
+  const handleLoadMore = () => {
+    if (!pageInfo.nextCursor || isLoadingMore) return;
+
+    // Just update the cursor - SWR will handle the fetch
+    // and the effect will append the new data
+    setCurrentCursor(pageInfo.nextCursor);
   };
 
   // Reset all filters
@@ -118,9 +94,53 @@ export default function Home() {
     setSearchQuery("");
     setCity("");
     setDegree("");
-    setMinYears("");
+    setMinExp("");
     setSort("years_desc");
+    // Don't clear allAdvocates or currentCursor here - let the effects handle it
   };
+
+  // Retry on error
+  const handleRetry = () => {
+    setCurrentCursor(undefined);
+    setAllAdvocates([]);
+  };
+
+  const hasActiveFilters =
+    Boolean(searchQuery || city || degree || minExp) || sort !== "years_desc";
+
+  const { summaryLabel, detailLabel } = useMemo(() => {
+    if (!hasActiveFilters) {
+      return { summaryLabel: "", detailLabel: "" };
+    }
+
+    const parts: string[] = [];
+
+    if (searchQuery) parts.push(`Search: “${searchQuery}”`);
+    if (city) parts.push(`City: ${city}`);
+    if (degree) parts.push(`Degree: ${degree}`);
+    if (minExp) parts.push(`${minExp}+ years experience`);
+
+    if (sort !== "years_desc") {
+      const sortMap: Record<string, string> = {
+        years_desc: "Most experienced",
+        years_asc: "Least experienced",
+        name_asc: "Name A→Z",
+      };
+      parts.push(`Sort: ${sortMap[sort] ?? sort}`);
+    }
+
+    const visibleSummary = parts.slice(0, 2).join(" • ");
+    const remainingCount = Math.max(parts.length - 2, 0);
+    const summaryLabel =
+      parts.length <= 2
+        ? visibleSummary
+        : `${visibleSummary} • +${remainingCount} more`;
+
+    return {
+      summaryLabel,
+      detailLabel: parts.join(" • "),
+    };
+  }, [hasActiveFilters, searchQuery, city, degree, minExp, sort]);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -135,229 +155,46 @@ export default function Home() {
           </p>
         </header>
 
-        {/* Prominent Search */}
-        <section
-          className="bg-white rounded-lg shadow-md p-6 mb-4"
-          role="search"
-          aria-label="Search advocates"
-        >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              id="search"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, city, or specialty..."
-              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              aria-label="Search advocates by name, city, or specialty"
-            />
-          </div>
-        </section>
+        {/* Search Bar */}
+        <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
-        {/* Advanced Filters Toggle */}
-        <div className="mb-4">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-3 py-2"
-            aria-expanded={showFilters}
-            aria-controls="advanced-filters"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Advanced Filters
-            {showFilters ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </button>
-        </div>
+        {/* Advanced Filters */}
+        <AdvancedFilters
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          city={city}
+          onCityChange={setCity}
+          degree={degree}
+          onDegreeChange={setDegree}
+          minExp={minExp}
+          onMinExpChange={setMinExp}
+          sort={sort}
+          onSortChange={setSort}
+          onReset={handleReset}
+        />
 
-        {/* Collapsible Advanced Filters */}
-        {showFilters && (
-          <section
-            id="advanced-filters"
-            className="bg-white rounded-lg shadow-md p-6 mb-8 transition-all"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              {/* City */}
-              <div>
-                <label
-                  htmlFor="city"
-                  className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5"
-                >
-                  <MapPin className="w-4 h-4" />
-                  City
-                </label>
-                <input
-                  id="city"
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g., New York"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                />
-              </div>
-
-              {/* Degree */}
-              <div>
-                <label
-                  htmlFor="degree"
-                  className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5"
-                >
-                  <GraduationCap className="w-4 h-4" />
-                  Degree
-                </label>
-                <select
-                  id="degree"
-                  value={degree}
-                  onChange={(e) => setDegree(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                >
-                  <option value="">All Degrees</option>
-                  <option value="MD">MD</option>
-                  <option value="PhD">PhD</option>
-                  <option value="MSW">MSW</option>
-                </select>
-              </div>
-
-              {/* Experience Range */}
-              <div>
-                <label
-                  htmlFor="minYears"
-                  className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5"
-                >
-                  <Award className="w-4 h-4" />
-                  Experience
-                </label>
-                <select
-                  id="minYears"
-                  value={minYears}
-                  onChange={(e) => setMinYears(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                >
-                  <option value="">Any experience</option>
-                  <option value="5">5+ years</option>
-                  <option value="10">10+ years</option>
-                  <option value="15">15+ years</option>
-                </select>
-              </div>
-
-              {/* Sort */}
-              <div>
-                <label
-                  htmlFor="sort"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Sort By
-                </label>
-                <select
-                  id="sort"
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                >
-                  <option value="years_desc">Most Experienced</option>
-                  <option value="years_asc">Least Experienced</option>
-                  <option value="name_asc">Name (A-Z)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Reset Button */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Reset Filters
-              </button>
-            </div>
-          </section>
-        )}
-
-        {/* Results Count */}
-        {!loading && !error && (
-          <div className="mb-4 text-sm text-gray-600" role="status" aria-live="polite">
-            {advocates.length} {advocates.length === 1 ? 'advocate' : 'advocates'} found
-            {pageInfo.hasNext && ' (showing first results)'}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            role="status"
-            aria-label="Loading advocates"
-          >
-            {[...Array(6)].map((_, i) => (
-              <AdvocateCardSkeleton key={i} />
-            ))}
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && !loading && (
-          <div
-            className="bg-red-50 border border-red-200 rounded-lg p-6 text-center"
-            role="alert"
-          >
-            <p className="text-red-800 font-medium mb-2">Error loading advocates</p>
-            <p className="text-red-600 mb-4">{error}</p>
-            <button
-              onClick={() => fetchAdvocates()}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && !error && advocates.length === 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-            <p className="text-gray-600 text-lg mb-4">
-              No advocates found matching your criteria
-            </p>
-            <button
-              onClick={handleReset}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Clear Filters
-            </button>
-          </div>
-        )}
-
-        {/* Advocate Cards */}
-        {!loading && !error && advocates.length > 0 && (
-          <>
-            <div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              role="list"
-              aria-label="Advocates"
-            >
-              {advocates.map((advocate) => (
-                <AdvocateCard key={advocate.id} advocate={advocate} />
-              ))}
-            </div>
-
-            {/* Load More Button */}
-            {pageInfo.hasNext && (
-              <div className="mt-8 text-center">
-                <button
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  className="px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  aria-label="Load more advocates"
-                >
-                  {loadingMore ? "Loading..." : "Load More"}
-                </button>
-              </div>
-            )}
-          </>
-        )}
+        {/* Advocate Grid */}
+        <AdvocateGrid
+          advocates={allAdvocates}
+          loading={isLoading}
+          loadingMore={isLoadingMore}
+          error={error?.message || null}
+          hasNextPage={pageInfo.hasNext || isLoadingMore}
+          advocatesCount={allAdvocates.length}
+          onLoadMore={handleLoadMore}
+          onReset={handleReset}
+          onRetry={handleRetry}
+        />
       </div>
+
+      {hasActiveFilters && (
+        <ActiveFiltersBar
+          summaryLabel={summaryLabel}
+          detailLabel={detailLabel}
+          onAdjust={() => setShowFilters(true)}
+          onClear={handleReset}
+        />
+      )}
     </main>
   );
 }
