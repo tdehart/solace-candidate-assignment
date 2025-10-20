@@ -63,13 +63,13 @@ describe("useAdvocates", () => {
         q: "anxiety",
         city: "New York",
         degree: "MD",
-        minYears: "10",
+        minExp: "10",
         sort: "years_desc",
       })
     );
 
     expect(mockUseSWR).toHaveBeenCalledWith(
-      "/api/advocates?q=anxiety&city=New+York&degree=MD&minYears=10&sort=years_desc",
+      "/api/advocates?q=anxiety&city=New+York&degree=MD&minExp=10&sort=years_desc",
       expect.any(Function),
       expect.any(Object)
     );

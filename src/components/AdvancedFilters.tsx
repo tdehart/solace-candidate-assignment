@@ -7,8 +7,8 @@ interface AdvancedFiltersProps {
   onCityChange: (city: string) => void;
   degree: string;
   onDegreeChange: (degree: string) => void;
-  minYears: string;
-  onMinYearsChange: (minYears: string) => void;
+  minExp: string;
+  onMinExpChange: (minExp: string) => void;
   sort: string;
   onSortChange: (sort: string) => void;
   onReset: () => void;
@@ -21,8 +21,8 @@ export function AdvancedFilters({
   onCityChange,
   degree,
   onDegreeChange,
-  minYears,
-  onMinYearsChange,
+  minExp,
+  onMinExpChange,
   sort,
   onSortChange,
   onReset,
@@ -98,16 +98,16 @@ export function AdvancedFilters({
             {/* Experience Range */}
             <div>
               <label
-                htmlFor="minYears"
+                htmlFor="minExp"
                 className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5"
               >
                 <Award className="w-4 h-4" />
                 Experience
               </label>
               <select
-                id="minYears"
-                value={minYears}
-                onChange={(e) => onMinYearsChange(e.target.value)}
+                id="minExp"
+                value={minExp}
+                onChange={(e) => onMinExpChange(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               >
                 <option value="">Any experience</option>

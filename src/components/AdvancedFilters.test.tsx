@@ -11,8 +11,8 @@ describe("AdvancedFilters", () => {
     onCityChange: vi.fn(),
     degree: "",
     onDegreeChange: vi.fn(),
-    minYears: "",
-    onMinYearsChange: vi.fn(),
+    minExp: "",
+    onMinExpChange: vi.fn(),
     sort: "years_desc",
     onSortChange: vi.fn(),
     onReset: vi.fn(),
@@ -59,7 +59,7 @@ describe("AdvancedFilters", () => {
         showFilters={true}
         city="New York"
         degree="MD"
-        minYears="10"
+        minExp="10"
         sort="name_asc"
       />
     );
@@ -98,22 +98,22 @@ describe("AdvancedFilters", () => {
     expect(onDegreeChange).toHaveBeenCalledWith("PhD");
   });
 
-  it("should call onMinYearsChange when experience select changes", async () => {
+  it("should call onMinExpChange when experience select changes", async () => {
     const user = userEvent.setup();
-    const onMinYearsChange = vi.fn();
+    const onMinExpChange = vi.fn();
 
     render(
       <AdvancedFilters
         {...defaultProps}
         showFilters={true}
-        onMinYearsChange={onMinYearsChange}
+        onMinExpChange={onMinExpChange}
       />
     );
 
     const experienceSelect = screen.getByLabelText(/experience/i);
     await user.selectOptions(experienceSelect, "5");
 
-    expect(onMinYearsChange).toHaveBeenCalledWith("5");
+    expect(onMinExpChange).toHaveBeenCalledWith("5");
   });
 
   it("should call onSortChange when sort select changes", async () => {

@@ -20,7 +20,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [city, setCity] = useState(searchParams.get("city") || "");
   const [degree, setDegree] = useState(searchParams.get("degree") || "");
-  const [minYears, setMinYears] = useState(searchParams.get("minExp") || "");
+  const [minExp, setMinExp] = useState(searchParams.get("minExp") || "");
   const [sort, setSort] = useState(searchParams.get("sort") || "years_desc");
 
   // Debounce search query
@@ -37,7 +37,7 @@ export default function Home() {
     q: debouncedSearch,
     city,
     degree,
-    minYears,
+    minExp,
     sort,
     cursor: currentCursor,
     limit: 20,
@@ -49,7 +49,7 @@ export default function Home() {
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (city) params.set("city", city);
     if (degree) params.set("degree", degree);
-    if (minYears) params.set("minExp", minYears);
+    if (minExp) params.set("minExp", minExp);
     if (sort) params.set("sort", sort);
 
     const queryString = params.toString();
@@ -57,7 +57,7 @@ export default function Home() {
 
     // Reset pagination when filters change
     setCurrentCursor(undefined);
-  }, [debouncedSearch, city, degree, minYears, sort, router]);
+  }, [debouncedSearch, city, degree, minExp, sort, router]);
 
   // Update advocates when data changes
   useEffect(() => {
@@ -98,7 +98,7 @@ export default function Home() {
     setSearchQuery("");
     setCity("");
     setDegree("");
-    setMinYears("");
+    setMinExp("");
     setSort("years_desc");
     // Don't clear allAdvocates or currentCursor here - let the effects handle it
   };
@@ -133,8 +133,8 @@ export default function Home() {
           onCityChange={setCity}
           degree={degree}
           onDegreeChange={setDegree}
-          minYears={minYears}
-          onMinYearsChange={setMinYears}
+          minExp={minExp}
+          onMinExpChange={setMinExp}
           sort={sort}
           onSortChange={setSort}
           onReset={handleReset}

@@ -5,7 +5,7 @@ export interface AdvocatesParams {
   q?: string;
   city?: string;
   degree?: string;
-  minYears?: string;
+  minExp?: string;
   sort?: string;
   cursor?: string;
   limit?: number;
@@ -43,7 +43,7 @@ export function useAdvocates(params: AdvocatesParams) {
   if (params.q) queryParams.set("q", params.q);
   if (params.city) queryParams.set("city", params.city);
   if (params.degree) queryParams.set("degree", params.degree);
-  if (params.minYears) queryParams.set("minYears", params.minYears);
+  if (params.minExp) queryParams.set("minExp", params.minExp);
   if (params.sort) queryParams.set("sort", params.sort);
   if (params.cursor) queryParams.set("cursor", params.cursor);
   if (params.limit) queryParams.set("limit", params.limit.toString());
