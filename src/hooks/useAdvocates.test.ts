@@ -26,11 +26,9 @@ describe("useAdvocates", () => {
 
     renderHook(() => useAdvocates({}));
 
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      "/api/advocates",
-      expect.any(Function),
-      expect.any(Object)
-    );
+    expect(mockUseSWR).toHaveBeenCalledWith("/api/advocates", expect.any(Function), {
+      dedupingInterval: 5000,
+    });
   });
 
   it("should build correct URL with search query", () => {
@@ -43,11 +41,9 @@ describe("useAdvocates", () => {
 
     renderHook(() => useAdvocates({ q: "mental health" }));
 
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      "/api/advocates?q=mental+health",
-      expect.any(Function),
-      expect.any(Object)
-    );
+    expect(mockUseSWR).toHaveBeenCalledWith("/api/advocates?q=mental+health", expect.any(Function), {
+      dedupingInterval: 5000,
+    });
   });
 
   it("should build correct URL with multiple filters", () => {
@@ -71,7 +67,7 @@ describe("useAdvocates", () => {
     expect(mockUseSWR).toHaveBeenCalledWith(
       "/api/advocates?q=anxiety&city=New+York&degree=MD&minExp=10&sort=years_desc",
       expect.any(Function),
-      expect.any(Object)
+      { dedupingInterval: 5000 }
     );
   });
 
@@ -85,11 +81,9 @@ describe("useAdvocates", () => {
 
     renderHook(() => useAdvocates({ cursor: "abc123" }));
 
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      "/api/advocates?cursor=abc123",
-      expect.any(Function),
-      expect.any(Object)
-    );
+    expect(mockUseSWR).toHaveBeenCalledWith("/api/advocates?cursor=abc123", expect.any(Function), {
+      dedupingInterval: 5000,
+    });
   });
 
   it("should include limit in URL when provided", () => {
@@ -102,11 +96,9 @@ describe("useAdvocates", () => {
 
     renderHook(() => useAdvocates({ limit: 50 }));
 
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      "/api/advocates?limit=50",
-      expect.any(Function),
-      expect.any(Object)
-    );
+    expect(mockUseSWR).toHaveBeenCalledWith("/api/advocates?limit=50", expect.any(Function), {
+      dedupingInterval: 5000,
+    });
   });
 
   it("should return empty data array when SWR data is undefined", () => {
@@ -190,15 +182,9 @@ describe("useAdvocates", () => {
 
     renderHook(() => useAdvocates({}));
 
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Function),
-      {
-        revalidateOnFocus: false,
-        revalidateOnReconnect: false,
-        dedupingInterval: 5000,
-      }
-    );
+    expect(mockUseSWR).toHaveBeenCalledWith(expect.any(String), expect.any(Function), {
+      dedupingInterval: 5000,
+    });
   });
 
   it("should expose mutate function", () => {
@@ -232,10 +218,8 @@ describe("useAdvocates", () => {
       })
     );
 
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      "/api/advocates",
-      expect.any(Function),
-      expect.any(Object)
-    );
+    expect(mockUseSWR).toHaveBeenCalledWith("/api/advocates", expect.any(Function), {
+      dedupingInterval: 5000,
+    });
   });
 });

@@ -19,54 +19,53 @@ export interface AdvocatesResponse {
   };
 }
 
-/**
- * Fetcher function for SWR
- */
-async function fetchAdvocates(
-  url: string
-): Promise<AdvocatesResponse> {
+const DEFAULT_PAGE_INFO = { nextCursor: null, hasNext: false } as const;
+const SWR_OPTIONS = { dedupingInterval: 5_000 };
+
+function buildQueryString(params: AdvocatesParams): string {
+  const query = new URLSearchParams();
+
+  const setParam = (key: string, value?: string | number) => {
+    if (value === undefined || value === "") return;
+    query.set(key, String(value));
+  };
+
+  setParam("q", params.q);
+  setParam("city", params.city);
+  setParam("degree", params.degree);
+  setParam("minExp", params.minExp);
+  setParam("sort", params.sort);
+  setParam("cursor", params.cursor);
+  setParam("limit", params.limit);
+
+  return query.toString();
+}
+
+async function fetchAdvocates(url: string): Promise<AdvocatesResponse> {
   const response = await fetch(url);
+
   if (!response.ok) {
     throw new Error("Failed to fetch advocates");
   }
+
   return response.json();
 }
 
-/**
- * Custom hook for fetching advocates with SWR
- * Provides automatic caching, deduplication, and revalidation
- */
 export function useAdvocates(params: AdvocatesParams) {
-  // Build query string from params
-  const queryParams = new URLSearchParams();
+  const queryString = buildQueryString(params);
+  const key = queryString ? `/api/advocates?${queryString}` : "/api/advocates";
 
-  if (params.q) queryParams.set("q", params.q);
-  if (params.city) queryParams.set("city", params.city);
-  if (params.degree) queryParams.set("degree", params.degree);
-  if (params.minExp) queryParams.set("minExp", params.minExp);
-  if (params.sort) queryParams.set("sort", params.sort);
-  if (params.cursor) queryParams.set("cursor", params.cursor);
-  if (params.limit) queryParams.set("limit", params.limit.toString());
-
-  const queryString = queryParams.toString();
-  const url = queryString ? `/api/advocates?${queryString}` : "/api/advocates";
-
-  // Use SWR for data fetching with caching
   const { data, error, isLoading, mutate } = useSWR<AdvocatesResponse>(
-    url,
+    key,
     fetchAdvocates,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 5000, // Dedupe requests within 5 seconds
-    }
+    SWR_OPTIONS
   );
 
   return {
-    data: data?.data || [],
-    pageInfo: data?.pageInfo || { nextCursor: null, hasNext: false },
+    data: data?.data ?? [],
+    pageInfo: data?.pageInfo ?? DEFAULT_PAGE_INFO,
     isLoading,
     error,
-    mutate, // Expose mutate for manual revalidation if needed
+    mutate,
   };
 }
