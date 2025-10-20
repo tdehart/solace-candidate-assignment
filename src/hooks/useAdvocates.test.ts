@@ -21,6 +21,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: undefined,
       isLoading: true,
+      isValidating: true,
       mutate: vi.fn(),
     });
 
@@ -36,6 +37,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: undefined,
       isLoading: true,
+      isValidating: true,
       mutate: vi.fn(),
     });
 
@@ -51,6 +53,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: undefined,
       isLoading: true,
+      isValidating: true,
       mutate: vi.fn(),
     });
 
@@ -76,6 +79,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: undefined,
       isLoading: true,
+      isValidating: true,
       mutate: vi.fn(),
     });
 
@@ -91,6 +95,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: undefined,
       isLoading: true,
+      isValidating: true,
       mutate: vi.fn(),
     });
 
@@ -106,6 +111,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: undefined,
       isLoading: true,
+      isValidating: true,
       mutate: vi.fn(),
     });
 
@@ -163,6 +169,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: mockError,
       isLoading: false,
+      isValidating: false,
       mutate: vi.fn(),
     });
 
@@ -177,6 +184,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: undefined,
       isLoading: true,
+      isValidating: true,
       mutate: vi.fn(),
     });
 
@@ -194,6 +202,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: undefined,
       isLoading: true,
+      isValidating: true,
       mutate: mockMutate,
     });
 
@@ -207,6 +216,7 @@ describe("useAdvocates", () => {
       data: undefined,
       error: undefined,
       isLoading: true,
+      isValidating: true,
       mutate: vi.fn(),
     });
 

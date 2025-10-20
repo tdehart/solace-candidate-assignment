@@ -55,7 +55,7 @@ export function useAdvocates(params: AdvocatesParams) {
   const queryString = buildQueryString(params);
   const key = queryString ? `/api/advocates?${queryString}` : "/api/advocates";
 
-  const { data, error, isLoading, mutate } = useSWR<AdvocatesResponse>(
+  const { data, error, isLoading, isValidating, mutate } = useSWR<AdvocatesResponse>(
     key,
     fetchAdvocates,
     SWR_OPTIONS
@@ -65,6 +65,7 @@ export function useAdvocates(params: AdvocatesParams) {
     data: data?.data ?? [],
     pageInfo: data?.pageInfo ?? DEFAULT_PAGE_INFO,
     isLoading,
+    isValidating,
     error,
     mutate,
   };

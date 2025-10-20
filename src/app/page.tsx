@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import type { Advocate } from "@/types/advocate";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -8,6 +8,7 @@ import { useAdvocates } from "@/hooks/useAdvocates";
 import { SearchBar } from "@/components/SearchBar";
 import { AdvancedFilters } from "@/components/AdvancedFilters";
 import { AdvocateGrid } from "@/components/AdvocateGrid";
+import { ActiveFiltersBar } from "@/components/ActiveFiltersBar";
 
 export default function Home() {
   const router = useRouter();
@@ -29,11 +30,9 @@ export default function Home() {
   // Pagination state - track accumulated advocates for "Load More"
   const [allAdvocates, setAllAdvocates] = useState<Advocate[]>([]);
   const [currentCursor, setCurrentCursor] = useState<string | undefined>(undefined);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasNextPage, setHasNextPage] = useState(false);
 
   // Fetch initial page with SWR (caching, deduplication)
-  const { data, pageInfo, isLoading, error } = useAdvocates({
+  const { data, pageInfo, isLoading, isValidating, error } = useAdvocates({
     q: debouncedSearch,
     city,
     degree,
@@ -61,7 +60,7 @@ export default function Home() {
 
   // Update advocates when data changes
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading && !currentCursor) return;
 
     if (currentCursor && data.length > 0) {
       // We're loading more - append new data only if we got results
@@ -73,23 +72,20 @@ export default function Home() {
         }
         return [...prev, ...data];
       });
-      setLoadingMore(false);
     } else if (!currentCursor) {
       // Initial load or filter change - replace data
       setAllAdvocates(data);
     }
+  }, [data, isLoading, currentCursor]);
 
-    // Update hasNextPage whenever we get new pageInfo
-    setHasNextPage(pageInfo.hasNext);
-  }, [data, isLoading, currentCursor, pageInfo.hasNext]);
+  const isLoadingMore = Boolean(currentCursor) && isValidating;
 
   // Handle Load More - smoothly append without full page refresh
   const handleLoadMore = () => {
-    if (!pageInfo.nextCursor || loadingMore) return;
+    if (!pageInfo.nextCursor || isLoadingMore) return;
 
     // Just update the cursor - SWR will handle the fetch
     // and the effect will append the new data
-    setLoadingMore(true);
     setCurrentCursor(pageInfo.nextCursor);
   };
 
@@ -108,6 +104,43 @@ export default function Home() {
     setCurrentCursor(undefined);
     setAllAdvocates([]);
   };
+
+  const hasActiveFilters =
+    Boolean(searchQuery || city || degree || minExp) || sort !== "years_desc";
+
+  const { summaryLabel, detailLabel } = useMemo(() => {
+    if (!hasActiveFilters) {
+      return { summaryLabel: "", detailLabel: "" };
+    }
+
+    const parts: string[] = [];
+
+    if (searchQuery) parts.push(`Search: “${searchQuery}”`);
+    if (city) parts.push(`City: ${city}`);
+    if (degree) parts.push(`Degree: ${degree}`);
+    if (minExp) parts.push(`${minExp}+ years experience`);
+
+    if (sort !== "years_desc") {
+      const sortMap: Record<string, string> = {
+        years_desc: "Most experienced",
+        years_asc: "Least experienced",
+        name_asc: "Name A→Z",
+      };
+      parts.push(`Sort: ${sortMap[sort] ?? sort}`);
+    }
+
+    const visibleSummary = parts.slice(0, 2).join(" • ");
+    const remainingCount = Math.max(parts.length - 2, 0);
+    const summaryLabel =
+      parts.length <= 2
+        ? visibleSummary
+        : `${visibleSummary} • +${remainingCount} more`;
+
+    return {
+      summaryLabel,
+      detailLabel: parts.join(" • "),
+    };
+  }, [hasActiveFilters, searchQuery, city, degree, minExp, sort]);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -144,15 +177,24 @@ export default function Home() {
         <AdvocateGrid
           advocates={allAdvocates}
           loading={isLoading}
-          loadingMore={loadingMore}
+          loadingMore={isLoadingMore}
           error={error?.message || null}
-          hasNextPage={hasNextPage}
+          hasNextPage={pageInfo.hasNext || isLoadingMore}
           advocatesCount={allAdvocates.length}
           onLoadMore={handleLoadMore}
           onReset={handleReset}
           onRetry={handleRetry}
         />
       </div>
+
+      {hasActiveFilters && (
+        <ActiveFiltersBar
+          summaryLabel={summaryLabel}
+          detailLabel={detailLabel}
+          onAdjust={() => setShowFilters(true)}
+          onClear={handleReset}
+        />
+      )}
     </main>
   );
 }
