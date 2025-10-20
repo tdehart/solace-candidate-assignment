@@ -52,18 +52,39 @@ This creates indexes on city, years_of_experience, lower(last_name), and special
 
 ### 6. Seed the database
 
-Start the development server first:
+Option 1 – Seed via API (requires dev server running):
+
+```bash
+npm run dev
+# new terminal
+curl -X POST http://localhost:3000/api/seed
+```
+
+Option 2 – Run the script:
+
+```bash
+npm run seed
+```
+
+### 7. Start the dev server
 
 ```bash
 npm run dev
 ```
 
-Then seed the database:
+Visit [http://localhost:3000](http://localhost:3000).
 
-```bash
-curl -X POST http://localhost:3000/api/seed
-```
+---
 
-### 7. Open the application
+## Scripts
+
+- `npm test` – run the Vitest suite
+- `npm run test:watch` – watch mode
+- `npm run test:coverage` – coverage report
+- `npm run lint` – lint the project
+- `npm run generate` – regenerate Drizzle SQL
+- `npm run migrate:up` – run pending migrations
+
+---
 
 Navigate to [http://localhost:3000](http://localhost:3000) to view the application.
