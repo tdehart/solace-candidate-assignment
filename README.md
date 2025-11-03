@@ -36,37 +36,25 @@ This will start PostgreSQL with the following defaults:
 
 ### 4. Push the database schema
 
+Push the schema to create the table with indexes:
+
 ```bash
 npx drizzle-kit push
 ```
 
-### 5. Add database indexes
+This creates the advocates table with performance indexes on city, years_of_experience, lower(last_name), and specialties for efficient pagination.
 
-Apply performance indexes for filtering and sorting:
+### 5. Seed the database
 
-```bash
-docker compose exec -T db psql -U postgres -d solaceassignment -f - < src/db/migrations/add_indexes.sql
-```
-
-This creates indexes on city, years_of_experience, lower(last_name), and specialties for efficient pagination.
-
-### 6. Seed the database
-
-Option 1 – Seed via API (requires dev server running):
+Seed via API (requires dev server running):
 
 ```bash
 npm run dev
-# new terminal
+# In a new terminal:
 curl -X POST http://localhost:3000/api/seed
 ```
 
-Option 2 – Run the script:
-
-```bash
-npm run seed
-```
-
-### 7. Start the dev server
+### 6. View the application
 
 ```bash
 npm run dev
@@ -88,3 +76,20 @@ Visit [http://localhost:3000](http://localhost:3000).
 ---
 
 Navigate to [http://localhost:3000](http://localhost:3000) to view the application.
+
+## Change Log (PR1–PR4)
+
+### Major Improvements
+- Keyset (cursor-based) pagination with server-side filtering & sorting (`years`, `name`), plus URL-synced filters and debounced search.
+- Responsive card-based search UI with prominent search, collapsible Advanced Filters, specialty popover, and floating Active Filters bar.
+- Specialty-aware search (incl. substring matches); city filter switched to partial, case-insensitive matching.
+- Modular architecture: `useAdvocates` data hook (typed + SWR), extracted `SearchBar`, `AdvancedFilters`, `AdvocateGrid`; refactored `src/app/page.tsx`.
+- Performance-ready indexes on `city`, `years_of_experience`, `lower(last_name)`, and `specialties` (GIN).
+- Validation & tests: Zod API validation, Vitest suite, unit tests for hook/components, expanded seed data (55) with pagination coverage.
+- Accessibility & UX: roles/labels/`aria-live`, consistent loading/empty/error + skeleton states.
+
+### Major Fixes
+- Eliminated XSS by removing `innerHTML` in favor of safe React state.
+- Replaced nested promise chains with `async/await` and proper error handling.
+- Database init now fails explicitly (no mock fallbacks).
+- Corrected React list keys and invalid table markup.
